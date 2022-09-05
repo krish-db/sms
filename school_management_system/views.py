@@ -3,6 +3,7 @@ from school_management_system import serializers
 from school_management_system.utils import created_response, general_error_response, success_response
 from school_management_system.services import create_students, register_school, update_student_details
 from school_management_system.permissions import SchoolUser, StudentUser
+from django.db.models.query import QuerySet
 
 
 class SignUp(APIView):
@@ -38,9 +39,11 @@ class AddorFilterStudents(APIView):
         try:
             serializer = serializers.AddStudentsSerializer(data=request.data)
             if serializer.is_valid():
-                success, msg = create_students(serializer.validated_data, request.user.school)
-                if success:
-                    return created_response('Successfully Created')
+                created, msg = create_students(serializer.validated_data, request.user.school)
+                if created:
+                    many=True if isinstance(created, QuerySet) else False
+                    student_serializer = serializers.StudentSerializer(created, many=many)
+                    return created_response(student_serializer.data)
                 else:
                     return general_error_response('Not Created', msg)
             else:
@@ -57,14 +60,15 @@ class EditStudentDetails(APIView):
             if serializer.is_valid():
                 if hasattr(request.user, "school"):
                     school = request.user.school
-                    success, msg = update_student_details(serializer.validated_data, school)
+                    updated, msg = update_student_details(serializer.validated_data, school)
                 elif hasattr(request.user, "student"):
                     student = request.user.student
-                    success, msg = update_student_details(serializer.validated_data, student=student)
+                    updated, msg = update_student_details(serializer.validated_data, student=student)
                 else:
-                    success, msg = False, 'User is not a student nor a school'
-                if success:
-                    return success_response('Successfully Updated')
+                    updated, msg = False, 'User is not a student nor a school'
+                if updated:
+                    student_serializer = serializers.StudentSerializer(updated)
+                    return success_response(student_serializer.data)
                 else:
                     return general_error_response('Not Updated', msg)
             else:

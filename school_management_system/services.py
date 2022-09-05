@@ -4,9 +4,11 @@ from django.db import transaction
 from school_management_system import serializers
 
 
-def create_and_assing_user_for_student(student):
+def create_and_assing_user_for_student(student, password=None):
     user = User.objects.create(username=student.student_no)
-    user.set_password('Password'+str(student.student_no))
+    if not password:
+        password = 'Password'+str(student.student_no)
+    user.set_password(password)
     user.save()
     student.user = user
     student.save()
@@ -22,14 +24,15 @@ def create_students(validated_data, school):
                 students_qs = school.students.filter(grade=grade).order_by('-student_no')[:no_of_students]
                 for student in students_qs:
                     create_and_assing_user_for_student(student)
-                return True, None
+                return students_qs, None
         else:
             with transaction.atomic():
                 student = Student.objects.create(name=validated_data.get('name'),
                                     school=school,
                                     grade=validated_data.get('grade'))
-                create_and_assing_user_for_student(student)
-            return True, None
+                password = validated_data.get('password', None)
+                create_and_assing_user_for_student(student, password)
+            return student, None
     except Exception as exc:
         return False, str(exc)
 
@@ -57,6 +60,6 @@ def update_student_details(validated_data, school=None, student=None):
                 user = student.user
                 user.set_password(password)
                 user.save()
-                return True, None
+                return student, None
         else:
             return False, 'Student Not Found with student_no' + str(student_no)

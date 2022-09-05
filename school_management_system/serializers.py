@@ -52,8 +52,8 @@ class AddStudentsSerializer(serializers.Serializer):
             if not self.initial_data.get('no_of_students'):
                 raise serializers.ValidationError("''no_of_students' field is required for bulk create")
         elif value is False:
-            if not self.initial_data.get('name') or not self.initial_data.get('password'):
-                raise serializers.ValidationError("'name' and 'password' field is required for bulk create")
+            if not self.initial_data.get('name'):
+                raise serializers.ValidationError("'name' field is required for creating single student, 'password' is optional")
         return value
 
 class EditStudentsSerializer(serializers.Serializer):
